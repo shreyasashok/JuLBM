@@ -13,6 +13,32 @@ function iniEquilibrium(rho::Float64, u::Vector{Float64}, lat::Lattice, cellData
     end
 end
 
+function iniVortex(lat::Lattice, cellData::LBMData)
+    for idx in CartesianIndices(cellData.data[1])
+        i, j = Tuple.(idx);
+        coords = [cellData.cellX[i], cellData.cellY[j]];
+        radSqr = dot(coords, coords);
+        vortexRadius::Float64 = 5.0;
+        ee = exp(0.5*(-radSqr/vortexRadius^2));
+        strength::Float64 = 0.01;
+        u = 0.05 - strength*ee*coords[2];
+        v = strength*ee*coords[1];
+
+        rho = 1.0;
+        uVec = [u,v];
+        uSqr = dot(uVec,uVec);
+
+        for iPop in 1:lat.q
+            cellData.data[iPop][idx] = equilibrium(iPop, rho, uVec, uSqr, lat);
+        end
+        cellData.data[lat.rhoIndex][idx] = rho;
+        for iD in 1:lat.d
+            cellData.data[lat.uIndex-1+iD][idx] = uVec[iD];
+        end
+
+    end
+end
+
 function bgkCollision(lat::Lattice, cellData::LBMData, omega::Float64)
     
     for idx in CartesianIndices(cellData.data[1])
@@ -40,6 +66,6 @@ end
 
 function stream(lat::Lattice, cellData::LBMData)
     for iPop in 1:lat.q
-        circshift(cellData.data[iPop], lat.c[iPop,:])
+        cellData.data[iPop] = circshift(cellData.data[iPop], lat.c[iPop,:])
     end
 end
