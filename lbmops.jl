@@ -1,6 +1,6 @@
 using LinearAlgebra;
 
-function iniEquilibrium(rho::Float64, u::Vector{Float64}, lat::Lattice, cellData::LBMData)
+function iniEquilibrium!(cellData::LBMData, lat::Lattice, rho::Float64, u::Vector{Float64})
     uSqr::Float64 = dot(u,u);
     for idx in CartesianIndices(cellData.data[1])
         for iPop in 1:lat.q
@@ -13,7 +13,7 @@ function iniEquilibrium(rho::Float64, u::Vector{Float64}, lat::Lattice, cellData
     end
 end
 
-function iniVortex(lat::Lattice, cellData::LBMData)
+function iniVortex!(cellData::LBMData, lat::Lattice)
     for idx in CartesianIndices(cellData.data[1])
         i, j = Tuple.(idx);
         coords = [cellData.cellX[i], cellData.cellY[j]];
@@ -39,7 +39,7 @@ function iniVortex(lat::Lattice, cellData::LBMData)
     end
 end
 
-function bgkCollision(lat::Lattice, cellData::LBMData, omega::Float64)
+function bgkCollision!(cellData::LBMData, lat::Lattice, omega::Float64)
     
     for idx in CartesianIndices(cellData.data[1])
         rho::Float64 = 1.0;
@@ -64,7 +64,7 @@ function bgkCollision(lat::Lattice, cellData::LBMData, omega::Float64)
     end
 end
 
-function stream(lat::Lattice, cellData::LBMData)
+function stream!(cellData::LBMData, lat::Lattice)
     for iPop in 1:lat.q
         cellData.data[iPop] = circshift(cellData.data[iPop], lat.c[iPop,:])
     end
