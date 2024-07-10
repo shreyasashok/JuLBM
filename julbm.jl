@@ -16,9 +16,9 @@ iniVortex!(cellData, D2Q9Lattice);
 # stream(D2Q9Lattice, cellData);
 
 vtk_grid("test_it0", cellData.plotX, cellData.plotY) do vtk
-    vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex];
-    vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0];
-    vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1];
+    vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex, :, :];
+    vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0, :, :];
+    vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1, :, :];
 end
 
 for i in 1:5000
@@ -27,9 +27,9 @@ for i in 1:5000
     println(i);
     if (mod(i, 50) == 0)
         vtk_grid("test_it$i", cellData.plotX, cellData.plotY) do vtk
-            vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex];
-            vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0];
-            vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1];
+            vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex, :, :];
+            vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0, :, :];
+            vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1, :, :];
         end
     end
 end
