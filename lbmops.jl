@@ -40,10 +40,10 @@ function iniVortex!(cellData::LBMData, lat::Lattice)
 end
 
 function bgkCollision!(cellData::LBMData, lat::Lattice, omega::Float64) 
-    vectorizedBGK(cellData.data, cellData.wrk, lat, omega);
+    vectorizedBGK!(cellData.data, cellData.wrk, lat, omega);
 end
 
-function vectorizedBGK(data, wrk, lat::Lattice, omega::Float64) 
+function vectorizedBGK!(data, wrk, lat::Lattice, omega::Float64) 
     for idx in CartesianIndices(@view(data[1,:,:]))
         bgkCollisionOperation!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
     end
@@ -75,7 +75,11 @@ function bgkCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArra
 end
 
 function stream!(cellData::LBMData, lat::Lattice)
+    vectorizedStream!(cellData.data, lat);
+end
+
+function vectorizedStream!(data::AbstractArray{Float64}, lat::Lattice)
     for iPop in 1:lat.q
-        cellData.data[iPop,:,:] = circshift(cellData.data[iPop,:,:], lat.c[iPop,:])
+        data[iPop,:,:] = circshift(@view(data[iPop,:,:]), lat.c[iPop,:])
     end
 end
