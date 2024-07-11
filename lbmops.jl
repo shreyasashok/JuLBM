@@ -40,10 +40,15 @@ function iniVortex!(cellData::LBMData, lat::Lattice)
 end
 
 function bgkCollision!(cellData::LBMData, lat::Lattice, omega::Float64) 
-    for idx in CartesianIndices(@view(cellData.data[1,:,:]))
-        bgkCollisionOperation!(@view(cellData.data[:,idx]), @view(cellData.wrk[:,idx]), lat, omega);
+    vectorizedBGK(cellData.data, cellData.wrk, lat, omega);
+end
+
+function vectorizedBGK(data, wrk, lat::Lattice, omega::Float64) 
+    for idx in CartesianIndices(@view(data[1,:,:]))
+        bgkCollisionOperation!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
     end
 end
+
 
 function bgkCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArray{Float64}, lat::Lattice, omega::Float64) 
     rho::Float64 = 1.0;

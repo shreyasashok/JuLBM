@@ -37,7 +37,8 @@ end
 
 function vectorizedBGK(data, wrk, lat::Lattice, omega::Float64) 
     for idx in CartesianIndices(@view(data[1,:,:]))
-        bgkCollisionOperationTest!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
+        # bgkCollisionOperationTest!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
+        bgkCollisionOperation!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
     end
 end
 
