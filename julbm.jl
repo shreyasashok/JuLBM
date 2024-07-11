@@ -7,29 +7,26 @@ include("latticeDefinitions.jl");
 include("lbmdata.jl");
 include("lbmhelpers.jl")
 include("lbmops.jl");
+include("amrVTK.jl");
 
 rm("vtk/", force=true, recursive=true);
 mkpath("vtk/");
 
-cellData = LBMData(100,100,D2Q9Lattice, -50., -50., 1.0);
+grids::Vector{LBMData} = [];
+
+cellData = LBMData(100,90,D2Q9Lattice, -50.5, -50., 1.0);
+cellDataFine = LBMData(70,80,D2Q9Lattice, -40.5, -30., 0.5, 1);
+push!(grids, cellData);
+push!(grids, cellDataFine);
 # iniEquilibrium(1.0, [0.1, 0.2], D2Q9Lattice, cellData);
 iniVortex!(cellData, D2Q9Lattice);
-
-vtk_grid("vtk/test_it0", cellData.plotX, cellData.plotY) do vtk
-    vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex, :, :];
-    vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0, :, :];
-    vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1, :, :];
-end
+iniVortex!(cellDataFine, D2Q9Lattice);
 
 for i in 1:5000
     bgkCollision!(cellData, D2Q9Lattice, 1.9);
     stream!(cellData, D2Q9Lattice);
     println(i);
     if (mod(i, 50) == 0)
-        vtk_grid("vtk/test_it$i", cellData.plotX, cellData.plotY) do vtk
-            vtk["rho"] = cellData.data[D2Q9Lattice.rhoIndex, :, :];
-            vtk["u"] = cellData.data[D2Q9Lattice.uIndex+0, :, :];
-            vtk["v"] = cellData.data[D2Q9Lattice.uIndex+1, :, :];
-        end
+        amrVTK(grids, "vtkOut", i, false);
     end
 end
