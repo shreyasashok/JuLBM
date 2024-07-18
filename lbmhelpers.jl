@@ -5,3 +5,7 @@ function equilibrium(iPop::Int64, rho::Float64, u::AbstractArray{Float64}, uSqr:
     end
     return rho * lat.t[iPop] * (1. + lat.invCs2*c_u + lat.invCs2^2 * 0.5 * c_u^2 - lat.invCs2 * 0.5 * uSqr) - lat.t[iPop];
 end
+
+function omegaForLevel(baseOmega::Float64, level::Int)
+    return 2*baseOmega/(2^(level+1)+ (1-2^level)*baseOmega);
+end

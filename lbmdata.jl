@@ -1,3 +1,6 @@
+using GridInterpolations;
+using StaticArrays;
+
 struct LBMData
 
     nx::Int
@@ -12,6 +15,8 @@ struct LBMData
     cellX::AbstractRange{Float64} # cell centered data
     cellY::AbstractRange{Float64}
     level::Int    
+    interpGrid::RectangleGrid
+    mWrk::Array{Float64}
 
     function LBMData(nx::Int, ny::Int, lat::Lattice, x::Float64=0., y::Float64=0., dx::Float64=1., level::Int=0) 
         data = zeros(lat.dataSize, nx, ny)
@@ -20,7 +25,9 @@ struct LBMData
         plotY = (0:ny).*dx .+ y;
         cellX = (0:nx-1).*dx .+ (x + 0.5*dx)
         cellY = (0:ny-1).*dx .+ (y + 0.5*dx)
-        new(nx,ny,data,wrk,x+0.5*dx,y+0.5*dx,dx,plotX,plotY,cellX,cellY,level)
+        interpGrid = RectangleGrid(cellX, cellY);
+        mWrk = zeros(lat.q, nx, ny)
+        new(nx,ny,data,wrk,x+0.5*dx,y+0.5*dx,dx,plotX,plotY,cellX,cellY,level,interpGrid, mWrk)
     end
 
 end

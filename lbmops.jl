@@ -43,9 +43,19 @@ function bgkCollision!(cellData::LBMData, lat::Lattice, omega::Float64)
     vectorizedBGK!(cellData.data, cellData.wrk, lat, omega);
 end
 
+function mrtCollision!(cellData::LBMData, lat::Lattice, omega::Float64, s1::Float64=1.1, s2::Float64=1.1) 
+    vectorizedMRT!(cellData.data, cellData.wrk, cellData.mWrk, lat, omega, lat.M, lat.Minv, s1, s2);
+end
+
 function vectorizedBGK!(data, wrk, lat::Lattice, omega::Float64) 
     for idx in CartesianIndices(@view(data[1,:,:]))
         bgkCollisionOperation!(@view(data[:,idx]), @view(wrk[:,idx]), lat, omega);
+    end
+end
+
+function vectorizedMRT!(data, uWrk, mWrk, lat::Lattice, omega::Float64, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, s1::Float64, s2::Float64) 
+    for idx in CartesianIndices(@view(data[1,:,:]))
+        mrtCollisionOperation!(@view(data[:,idx]), @view(uWrk[:,idx]), @view(mWrk[:,idx]), lat, M, Minv, omega, s1, s2);
     end
 end
 
@@ -71,6 +81,35 @@ function bgkCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArra
     for iPop in 1:lat.q
         data[iPop] = (data[iPop] * (1.0 - omega)) + omega*equilibrium(iPop, rho, uWrk, uSqr, lat);
     end
+    return nothing;
+end
+
+function mrtCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArray{Float64}, mWrk::AbstractArray{Float64}, lat::Lattice, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, omega::Float64, s1::Float64, s2::Float64) 
+    rho::Float64 = 1.0;
+    fill!(uWrk, 0.0);
+
+    for iPop in 1:lat.q
+        rho += data[iPop];
+        for iD in 1:lat.d
+            uWrk[iD] += data[iPop] * lat.c[iPop, iD];
+        end
+    end
+    uWrk ./= rho;
+    uSqr = dot(uWrk,uWrk);
+
+    mWrk .= @view(data[1:lat.q]) .- broadcast(x->equilibrium(x, rho, uWrk, uSqr, D2Q9Lattice), 1:lat.q); #fNeq
+    mWrk .= M*mWrk; #mNeq
+    mWrk = Array(mWrk); #convert from SVector to normal vector
+    mWrk[4:5] .*= -s1; #relax
+    mWrk[6:7] .*= -s2; #relax
+    mWrk[8:9] .*= -omega; #relax
+
+    data[lat.rhoIndex] = rho;
+    for iD in 1:lat.d
+        data[lat.uIndex-1+iD] = uWrk[iD];
+    end
+
+    data[1:lat.q] .+= Minv*mWrk;
     return nothing;
 end
 

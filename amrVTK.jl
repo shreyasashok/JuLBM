@@ -29,6 +29,15 @@ function amrVTK(grids::Vector{LBMData}, outFileName::String, it::Int, showFringe
             vtk["rho"] = grid.data[D2Q9Lattice.rhoIndex, xRange, yRange];
             vtk["u"] = grid.data[D2Q9Lattice.uIndex+0, xRange, yRange];
             vtk["v"] = grid.data[D2Q9Lattice.uIndex+1, xRange, yRange];
+            vtk["pop0"] = grid.data[1, xRange, yRange];
+            vtk["pop1"] = grid.data[2, xRange, yRange];
+            vtk["pop2"] = grid.data[3, xRange, yRange];
+            vtk["pop3"] = grid.data[4, xRange, yRange];
+            vtk["pop4"] = grid.data[5, xRange, yRange];
+            vtk["pop5"] = grid.data[6, xRange, yRange];
+            vtk["pop6"] = grid.data[7, xRange, yRange];
+            vtk["pop7"] = grid.data[8, xRange, yRange];
+            vtk["pop8"] = grid.data[9, xRange, yRange];
         end
     end
 
