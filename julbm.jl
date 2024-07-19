@@ -1,6 +1,6 @@
 using WriteVTK;
 
-print("Hello world!\n")
+print("Starting JuLBM\n")
 
 include("lattice.jl");
 include("latticeDefinitions.jl");
@@ -40,21 +40,24 @@ bcs = [equilibriumBC!, #xMin
        equilibriumBC!, #xMin yMax
        equilibriumBC!]; #xMax yMax
 
-nsave = 50;
+nsteps = 5000;
+nsave = nsteps/10;
 
-for i in 0:500
-    
+for i in 0:nsteps
+    println("Step $i");
     collision!(cellData, D2Q9Lattice, omegas[1])
     collision!(cellDataFine, D2Q9Lattice, omegas[2]);
     coarseToFine!(cellDataFine, cellData);
     fineToCoarse!(cellData, cellDataFine);
     if (mod(i, nsave) == 0)
         amrVTK(grids, "vtkOut", i, true);
+        print("Printing solution.\n")
     end
     stream!(cellData, D2Q9Lattice);
     applyBCs!(cellData, D2Q9Lattice, omegas[1], bcs);
     stream!(cellDataFine, D2Q9Lattice);
     collision!(cellDataFine, D2Q9Lattice, omegas[2]);
     stream!(cellDataFine, D2Q9Lattice);
-    println("Step $i");    
 end
+
+print("Case complete.\n")
