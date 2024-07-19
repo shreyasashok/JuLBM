@@ -28,8 +28,8 @@ push!(omegas, omegaForLevel(1.9, 1));
 iniVortex!(cellDataFine, D2Q9Lattice);
 iniVortex!(cellData, D2Q9Lattice);
 
-collision! = bgkCollision!;
-# collision! = mrtCollision!;
+# collision! = bgkCollision!;
+collision! = mrtCollision!;
 
 bcs = [equilibriumBC!, #xMin
        equilibriumBC!, #xMax
