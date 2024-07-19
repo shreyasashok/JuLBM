@@ -9,6 +9,7 @@ include("lbmhelpers.jl")
 include("lbmops.jl");
 include("amrVTK.jl");
 include("fringeInterp.jl")
+include("bc.jl")
 
 rm("vtk/", force=true, recursive=true);
 mkpath("vtk/");
@@ -30,6 +31,15 @@ iniVortex!(cellData, D2Q9Lattice);
 collision! = bgkCollision!;
 # collision! = mrtCollision!;
 
+bcs = [equilibriumBC!, #xMin
+       equilibriumBC!, #xMax
+       equilibriumBC!, #yMin
+       equilibriumBC!, #yMax
+       equilibriumBC!, #xMin yMin
+       equilibriumBC!, #xMax yMin
+       equilibriumBC!, #xMin yMax
+       equilibriumBC!]; #xMax yMax
+
 nsave = 50;
 
 for i in 0:500
@@ -42,6 +52,7 @@ for i in 0:500
         amrVTK(grids, "vtkOut", i, true);
     end
     stream!(cellData, D2Q9Lattice);
+    applyBCs!(cellData, D2Q9Lattice, omegas[1], bcs);
     stream!(cellDataFine, D2Q9Lattice);
     collision!(cellDataFine, D2Q9Lattice, omegas[2]);
     stream!(cellDataFine, D2Q9Lattice);

@@ -122,3 +122,28 @@ function vectorizedStream!(data::AbstractArray{Float64}, lat::Lattice)
         data[iPop,:,:] = circshift(@view(data[iPop,:,:]), lat.c[iPop,:])
     end
 end
+
+#order of bcs: xMin, xMax, yMin, yMax, xMinyMin, xMaxyMin, xMinYMax, xMaxYMax
+function applyBCs!(cellData::LBMData, lat::Lattice, omega::Float64, bcfs!)
+    applyBC!(cellData, lat, omega, bcfs![1], [-1,  0]);
+    applyBC!(cellData, lat, omega, bcfs![2], [ 1,  0]);
+    applyBC!(cellData, lat, omega, bcfs![3], [ 0, -1]);
+    applyBC!(cellData, lat, omega, bcfs![4], [ 0,  1]);
+    applyBC!(cellData, lat, omega, bcfs![5], [-1, -1]);
+    applyBC!(cellData, lat, omega, bcfs![6], [ 1, -1]);
+    applyBC!(cellData, lat, omega, bcfs![7], [-1,  1]);
+    applyBC!(cellData, lat, omega, bcfs![8], [ 1,  1]);
+end
+
+function applyBC!(cellData::LBMData, lat::Lattice, omega::Float64, bcf!::Function, normOut::Vector{Int})
+    xRange = normOut[1] == 0 ? (2:cellData.nx-1) : normOut[1] == (-1:-1) ? (1:1) : (cellData.nx:cellData.nx);
+    yRange = normOut[2] == 0 ? (2:cellData.ny-1) : normOut[2] == (-1:-1) ? (1:1) : (cellData.ny:cellData.ny);
+
+    vectorizedBC!(cellData.data, xRange, yRange, lat, omega, bcf!, normOut);
+end
+
+function vectorizedBC!(data, xRange, yRange, lat::Lattice, omega::Float64, bcf!::Function, normOut::Vector{Int})
+    for idx in CartesianIndices(@view(data[1,xRange,yRange]))
+        bcf!(@view(data[:,idx]), lat, omega, normOut);
+    end
+end
