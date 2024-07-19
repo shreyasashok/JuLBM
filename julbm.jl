@@ -17,19 +17,21 @@ mkpath("vtk/");
 grids::Vector{LBMData} = [];
 omegas::Vector{Float64} = [];
 
-cellData = LBMData(250,90,D2Q9Lattice, -50.5, -50., 1.0);
-cellDataFine = LBMData(70,80,D2Q9Lattice, 50.5, -30., 0.5, 1);
-push!(grids, cellData);
-push!(grids, cellDataFine);
+lbmData = LBMData(250,90,D2Q9Lattice, -50.5, -50., 1.0);
+lbmDataFine = LBMData(70,80,D2Q9Lattice, 50.5, -30., 0.5, 1);
+push!(grids, lbmData);
+push!(grids, lbmDataFine);
 push!(omegas, 1.9);
 push!(omegas, omegaForLevel(1.9, 1));
-# iniEquilibrium!(cellData, D2Q9Lattice, 1.0, [0.1, 0.2]);
-# iniEquilibrium!(cellDataFine, D2Q9Lattice, 1.0, [-0.1, -0.2]);
-iniVortex!(cellDataFine, D2Q9Lattice);
-iniVortex!(cellData, D2Q9Lattice);
+# iniEquilibrium!(lbmData, D2Q9Lattice, 1.0, [0.1, 0.2]);
+# iniEquilibrium!(lbmDataFine, D2Q9Lattice, 1.0, [-0.1, -0.2]);
+iniVortex!(lbmDataFine, D2Q9Lattice);
+iniVortex!(lbmData, D2Q9Lattice);
 
-collision! = bgkCollision!;
-# collision! = mrtCollision!;
+lbmData.data[1, 125, 45] = NaN;
+
+# collision! = bgkCollision!;
+collision! = mrtCollision!;
 
 bcs = [equilibriumBC!, #xMin
        equilibriumBC!, #xMax
@@ -40,24 +42,36 @@ bcs = [equilibriumBC!, #xMin
        equilibriumBC!, #xMin yMax
        equilibriumBC!]; #xMax yMax
 
-nsteps = 5000;
-nsave = nsteps/10;
+nsteps = 1500;
+nsave = nsteps/30;
 
 for i in 0:nsteps
     println("Step $i");
-    collision!(cellData, D2Q9Lattice, omegas[1])
-    collision!(cellDataFine, D2Q9Lattice, omegas[2]);
-    coarseToFine!(cellDataFine, cellData);
-    fineToCoarse!(cellData, cellDataFine);
+    collision!(lbmData, D2Q9Lattice, omegas[1])
+    collision!(lbmDataFine, D2Q9Lattice, omegas[2]);
+    fineToCoarse!(lbmData, lbmDataFine);
+    coarseToFine!(lbmDataFine, lbmData);
     if (mod(i, nsave) == 0)
         amrVTK(grids, "vtkOut", i, true);
         print("Printing solution.\n")
     end
-    stream!(cellData, D2Q9Lattice);
-    applyBCs!(cellData, D2Q9Lattice, omegas[1], bcs);
-    stream!(cellDataFine, D2Q9Lattice);
-    collision!(cellDataFine, D2Q9Lattice, omegas[2]);
-    stream!(cellDataFine, D2Q9Lattice);
+    stream!(lbmData, D2Q9Lattice);
+    # applyBCs!(lbmData, D2Q9Lattice, omegas[1], bcs);
+    stream!(lbmDataFine, D2Q9Lattice);
+    if (mod(i, nsave) == 0)
+        amrVTK(grids, "vtkOut", i+1, true);
+        print("Printing solution.\n")
+    end
+    collision!(lbmDataFine, D2Q9Lattice, omegas[2]);
+    if (mod(i, nsave) == 0)
+        amrVTK(grids, "vtkOut", i+2, true);
+        print("Printing solution.\n")
+    end
+    stream!(lbmDataFine, D2Q9Lattice);
+    if (mod(i, nsave) == 0)
+        amrVTK(grids, "vtkOut", i+3, true);
+        print("Printing solution.\n")
+    end
 end
 
 print("Case complete.\n")

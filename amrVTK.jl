@@ -38,6 +38,7 @@ function amrVTK(grids::Vector{LBMData}, outFileName::String, it::Int, showFringe
             vtk["pop6"] = grid.data[7, xRange, yRange];
             vtk["pop7"] = grid.data[8, xRange, yRange];
             vtk["pop8"] = grid.data[9, xRange, yRange];
+            vtk["pop2 plus pop6"] = grid.data[2, xRange, yRange] .+ grid.data[6, xRange, yRange];
         end
     end
 
