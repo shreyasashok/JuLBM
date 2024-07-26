@@ -39,12 +39,36 @@ function iniVortex!(cellData::LBMData, lat::Lattice)
     end
 end
 
+function iniShear!(cellData::LBMData, lat::Lattice)
+    cs = sqrt(1.0/lat.invCs2);
+    Ux = 0.1*cs;
+    Uy = 0.1*cs;
+    rho = 1.0;
+    xc = 150;
+    Rc = 5;
+    for idx in CartesianIndices(cellData.data[1,:,:])
+        x = cellData.cellX[idx[1]];
+        ux = Ux;
+        uy = Uy * exp(-((x-xc)^2)/(2*Rc^2));
+        u = [ux,uy];
+        uSqr = dot(u,u);       
+
+        for iPop in 1:lat.q
+            cellData.data[iPop,idx] = equilibrium(iPop, rho, u, uSqr, lat);
+        end
+        cellData.data[lat.rhoIndex, idx] = rho;
+        for iD in 1:lat.d
+            cellData.data[lat.uIndex-1+iD, idx] = u[iD];
+        end
+    end
+end
+
 function bgkCollision!(cellData::LBMData, lat::Lattice, omega::Float64) 
     vectorizedBGK!(cellData.data, cellData.wrk, lat, omega);
 end
 
-function mrtCollision!(cellData::LBMData, lat::Lattice, omega::Float64, s1::Float64=1.1, s2::Float64=1.1) 
-    vectorizedMRT!(cellData.data, cellData.wrk, cellData.mWrk, lat, omega, lat.M, lat.Minv, s1, s2);
+function mrtCollision!(cellData::LBMData, lat::Lattice, omega::Float64, bulk::Float64=omega, s1::Float64=1.1, s2::Float64=1.1) 
+    vectorizedMRT!(cellData.data, cellData.wrk, cellData.mWrk, lat, omega, lat.M, lat.Minv, bulk, s1, s2);
 end
 
 function vectorizedBGK!(data, wrk, lat::Lattice, omega::Float64) 
@@ -53,9 +77,13 @@ function vectorizedBGK!(data, wrk, lat::Lattice, omega::Float64)
     end
 end
 
-function vectorizedMRT!(data, uWrk, mWrk, lat::Lattice, omega::Float64, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, s1::Float64, s2::Float64) 
+function vectorizedMRT!(data, uWrk, mWrk, lat::Lattice, omega::Float64, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, bulk::Float64, s1::Float64, s2::Float64) 
     for idx in CartesianIndices(@view(data[1,:,:]))
-        mrtCollisionOperation!(@view(data[:,idx]), @view(uWrk[:,idx]), @view(mWrk[:,idx]), lat, M, Minv, omega, s1, s2);
+        # if mod(mod(idx[1], 2) + mod(idx[2],2), 2) == 0
+            mrtCollisionOperation!(@view(data[:,idx]), @view(uWrk[:,idx]), @view(mWrk[:,idx]), lat, M, Minv, omega, bulk, s1, s2);
+        # else
+            # mrtCollisionOperation!(@view(data[:,idx]), @view(uWrk[:,idx]), @view(mWrk[:,idx]), lat, M, Minv, omega, bulk, 2.0-s1, 2.0-s2);
+        # end
     end
 end
 
@@ -84,7 +112,7 @@ function bgkCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArra
     return nothing;
 end
 
-function mrtCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArray{Float64}, mWrk::AbstractArray{Float64}, lat::Lattice, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, omega::Float64, s1::Float64, s2::Float64) 
+function mrtCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArray{Float64}, mWrk::AbstractArray{Float64}, lat::Lattice, M::AbstractArray{Float64}, Minv::AbstractArray{Float64}, omega::Float64, bulk::Float64, s1::Float64, s2::Float64) 
     rho::Float64 = 1.0;
     fill!(uWrk, 0.0);
 
@@ -100,9 +128,10 @@ function mrtCollisionOperation!(data::AbstractArray{Float64}, uWrk::AbstractArra
     mWrk .= @view(data[1:lat.q]) .- broadcast(x->equilibrium(x, rho, uWrk, uSqr, D2Q9Lattice), 1:lat.q); #fNeq
     mWrk .= M*mWrk; #mNeq
     mWrk = Array(mWrk); #convert from SVector to normal vector
-    mWrk[4:5] .*= -s1; #relax
-    mWrk[6:7] .*= -s2; #relax
-    mWrk[8:9] .*= -omega; #relax
+    mWrk[4:4] .*= -bulk; #relax (bulk viscosity)
+    mWrk[5:5] .*= -s1; #relax (free parameter)
+    mWrk[6:7] .*= -s2; #relax (free parameter)
+    mWrk[8:9] .*= -omega; #relax (shear viscosity)
 
     data[lat.rhoIndex] = rho;
     for iD in 1:lat.d

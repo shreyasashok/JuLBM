@@ -1,4 +1,5 @@
 using WriteVTK;
+using Plots;
 
 print("Starting JuLBM\n")
 
@@ -17,47 +18,55 @@ mkpath("vtk/");
 grids::Vector{LBMData} = [];
 omegas::Vector{Float64} = [];
 
-cellData = LBMData(250,90,D2Q9Lattice, -50.5, -50., 1.0);
-cellDataFine = LBMData(70,80,D2Q9Lattice, 50.5, -30., 0.5, 1);
+cellData = LBMData(5000,4,D2Q9Lattice, -2500., 0., 1.0);
 push!(grids, cellData);
-push!(grids, cellDataFine);
-push!(omegas, 1.9);
-push!(omegas, omegaForLevel(1.9, 1));
-# iniEquilibrium!(cellData, D2Q9Lattice, 1.0, [0.1, 0.2]);
-# iniEquilibrium!(cellDataFine, D2Q9Lattice, 1.0, [-0.1, -0.2]);
-iniVortex!(cellDataFine, D2Q9Lattice);
-iniVortex!(cellData, D2Q9Lattice);
+desiredViscosity = 10.0^-6;
+tau = desiredViscosity*3 + 0.5;
+push!(omegas, 1/tau);
+iniShear!(cellData, D2Q9Lattice);
 
 # collision! = bgkCollision!;
 collision! = mrtCollision!;
 
-bcs = [equilibriumBC!, #xMin
-       equilibriumBC!, #xMax
-       equilibriumBC!, #yMin
-       equilibriumBC!, #yMax
-       equilibriumBC!, #xMin yMin
-       equilibriumBC!, #xMax yMin
-       equilibriumBC!, #xMin yMax
-       equilibriumBC!]; #xMax yMax
+nsteps = 90;
+nsave = 1;
 
-nsteps = 5000;
-nsave = nsteps/10;
+s1_even = 1.1;
+s1_odd = 1.1;
+s2_even = 1.1;
+s2_odd = 1.1;
+
+# s1_even = omegas[1];
+# s1_odd = omegas[1];
+# s2_even = omegas[1];
+# s2_odd = omegas[1];
 
 for i in 0:nsteps
     println("Step $i");
-    collision!(cellData, D2Q9Lattice, omegas[1])
-    collision!(cellDataFine, D2Q9Lattice, omegas[2]);
-    coarseToFine!(cellDataFine, cellData);
-    fineToCoarse!(cellData, cellDataFine);
+    if (mod(i,2) == 0)
+        collision!(cellData, D2Q9Lattice, omegas[1], omegas[1], s1_even, s2_even)
+    else
+        collision!(cellData, D2Q9Lattice, omegas[1], omegas[1], s1_odd, s2_odd)
+    end
     if (mod(i, nsave) == 0)
         amrVTK(grids, "vtkOut", i, true);
         print("Printing solution.\n")
     end
     stream!(cellData, D2Q9Lattice);
-    applyBCs!(cellData, D2Q9Lattice, omegas[1], bcs);
-    stream!(cellDataFine, D2Q9Lattice);
-    collision!(cellDataFine, D2Q9Lattice, omegas[2]);
-    stream!(cellDataFine, D2Q9Lattice);
 end
+
+Uy = 0.1*sqrt(1.0/D2Q9Lattice.invCs2);
+shearPlot = plot(cellData.cellX, cellData.data[D2Q9Lattice.uIndex+1, :, 2]/Uy)
+xlabel!("x");
+ylabel!("uy/Uy");
+ylims!(-3E-3, 3E-3);
+xlims!(0, 350);
+
+# collision!(cellData, D2Q9Lattice, omegas[1])
+collision!(cellData, D2Q9Lattice, omegas[1], omegas[1], s1_even, s2_even)
+stream!(cellData, D2Q9Lattice);
+
+plot!(cellData.cellX, cellData.data[D2Q9Lattice.uIndex+1, :, 2]/Uy)
+
 
 print("Case complete.\n")
